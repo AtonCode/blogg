@@ -1,0 +1,19 @@
+description: Push to master
+filename: cloud-build/cloudbuild.yaml
+github:
+  name: travel-list
+  owner: WLun001
+  push:
+    branch: ^master$
+ignoredFiles:
+  - http/**
+  - Makefile
+  - .gitignore
+  - .air.conf
+  - cloud-build/trigger.yaml
+name: default-push-master
+substitutions:
+  _REGION: asia-east1
+  _SERVICE_NAME: travel
+tags:
+  - github-default-push-trigger

@@ -1,0 +1,41 @@
+steps:
+  # use Kaniko to speed up build process
+  # it will push to container registry after it's done
+  # not using kaniko first, it has problem with multi-stage build
+  # https://github.com/GoogleContainerTools/kaniko/issues/595
+  #  - name: 'gcr.io/kaniko-project/executor:latest'
+  #    id: 'build-and-push'
+  #    args:
+  #      - '--destination=asia.gcr.io/$PROJECT_ID/$_SERVICE_NAME:$SHORT_SHA'
+  #      - '--destination=asia.gcr.io/$PROJECT_ID/$_SERVICE_NAME:latest'
+  #      - '--dockerfile=Dockerfile'
+  #      - '--context=.'
+  #      - '--cache=true'
+  #      - '--cache-ttl=120h'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Docker build'
+    args:
+      - 'build'
+      - '-t'
+      - 'asia.gcr.io/$PROJECT_ID/$_SERVICE_NAME:$SHORT_SHA'
+      - '-t'
+      - 'asia.gcr.io/$PROJECT_ID/$_SERVICE_NAME:latest'
+      - '.'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Docker push'
+    args: ['push', 'asia.gcr.io/$PROJECT_ID/$_SERVICE_NAME:$SHORT_SHA']
+
+  - id: 'Deploy to Cloud Run'
+    name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        gcloud run deploy $_SERVICE_NAME \
+        --image=asia.gcr.io/$PROJECT_ID/$_SERVICE_NAME:$SHORT_SHA \
+        --region=$_REGION --platform managed --allow-unauthenticated \
+        --port=4000 \
+        --set-env-vars=APP_ENV=production,APP_SECRET_MANAGER_RESOURCE="projects/755927838116/secrets/travel-list-secret/versions/latest"
+
